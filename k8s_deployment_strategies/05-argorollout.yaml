@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demos
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-v1
+  namespace: demos
+data:
+  index.html: |
+    <html><body><h1>Hello from v1</h1></body></html>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-v2
+  namespace: demos
+data:
+  index.html: |
+    <html><body><h1>Hello from v2</h1></body></html>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-stable
+  namespace: demos
+spec:
+  selector: { app: web }   # Argo Rollouts will manage the hash selector internally
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-canary
+  namespace: demos
+spec:
+  selector: { app: web }
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-stable-ing
+  namespace: demos
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-stable
+                port:
+                  number: 80
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: web
+  namespace: demos
+spec:
+  replicas: 4
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: www
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: index.html
+      volumes:
+        - name: www
+          configMap:
+            name: web-v1   # start with v1 content
+  strategy:
+    canary:
+      stableService: web-stable
+      canaryService: web-canary
+      trafficRouting:
+        nginx:
+          stableIngress: web-stable-ing  # Argo will manage canary ingress/weights
+      steps:
+        - setWeight: 10
+        - pause: { duration: 1m }
+        - setWeight: 50
+        - pause: { duration: 1m }
+        - setWeight: 100
