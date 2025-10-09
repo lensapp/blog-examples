@@ -47,7 +47,7 @@ kind: Service
 metadata:
   name: web-bg
 spec:
-  selector: { app: web, color: blue }  # BLUE first
+  selector: { app: web, color: blue } # BLUE first
   ports: [{ port: 80, targetPort: 80 }]
 ---
 apiVersion: networking.k8s.io/v1
@@ -58,7 +58,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-    - host: app.local
+    - host: localhost
       http:
         paths:
           - path: /
