@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: node-pod-count-alert
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack-1760444884
+spec:
+  groups:
+    - name: node-pod-count.rules
+      rules:
+        - alert: HighPodCountOnNode
+          expr: count by (node) (kube_pod_info) > 11
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High pod count detected on node {{ $labels.node }}"
+            description: "Node {{ $labels.node }} is running more than 10 pods for over 1 minute."
