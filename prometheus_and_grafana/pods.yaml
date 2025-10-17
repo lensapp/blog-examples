@@ -4,7 +4,7 @@ metadata:
   name: node-pod-count-alert
   namespace: monitoring
   labels:
-    release: kube-prometheus-stack-1760444884
+    release: kube-prometheus-stack-1760444884 # change this to your helm release name
 spec:
   groups:
     - name: node-pod-count.rules
